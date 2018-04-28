@@ -1,29 +1,67 @@
 package main
 
 import (
-	"log"
-	"net/http"
 	"os"
 
-	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh/terminal"
+	"gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/talpert/hellofour/api"
+	"github.com/talpert/hellofour/config"
+	"github.com/talpert/hellofour/deps"
 	_ "github.com/heroku/x/hmetrics/onload"
 )
 
-func main() {
-	port := os.Getenv("PORT")
+var (
+	version = "No version specified"
 
-	if port == "" {
-		log.Fatal("$PORT must be set")
+	envFile = kingpin.Flag("envfile", "Local Env file to read at startup").Short('e').Default(".env.local").String()
+	debug   = kingpin.Flag("debug", "Enable debug output").Short('d').Bool()
+)
+
+func init() {
+	// Parse CLI stuff
+	kingpin.Version(version)
+	kingpin.CommandLine.HelpFlag.Short('h')
+	kingpin.CommandLine.VersionFlag.Short('v')
+	kingpin.Parse()
+}
+
+func main() {
+	if *debug {
+		logrus.SetLevel(logrus.DebugLevel)
 	}
 
-	router := gin.New()
-	router.Use(gin.Logger())
-	router.LoadHTMLGlob("templates/*.tmpl.html")
-	router.Static("/static", "static")
+	// JSON formatter for log output if not running in a TTY
+	// because Loggly likes JSON but humans like colors
+	if !terminal.IsTerminal(int(os.Stderr.Fd())) {
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+	}
 
-	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.tmpl.html", nil)
-	})
+	llog := logrus.WithField("method", "main")
 
-	router.Run(":" + port)
+	llog.WithField("filename", *envFile).Debug("Loading env file")
+	if err := godotenv.Load(*envFile); err != nil {
+		llog.WithFields(logrus.Fields{"filename": *envFile, "err": err.Error()}).Warn("Unable to load dotenv file")
+	}
+
+	cfg := config.New()
+	if err := cfg.LoadEnvVars(); err != nil {
+		llog.WithError(err).Fatal("Could not instantiate configuration")
+	}
+
+	llog = llog.WithField("environment", cfg.EnvName)
+
+	llog.Info("Launching hellofour API")
+
+	d, err := deps.New(cfg)
+	if err != nil {
+		llog.WithError(err).Fatal("Could not setup dependencies")
+	}
+
+	// Start the API server
+	a := api.New(cfg, d, version)
+	llog.Fatal(a.Run())
 }
