@@ -16,6 +16,7 @@ type Config struct {
 	HealthFreqSec int      `env:"HELLOFOUR_HEALTH_FREQ_SEC" envDefault:"60"`
 	EnvName       string   `env:"HELLOFOUR_ENV_NAME" envDefault:"dev"`
 	Tokens        []string `env:"HELLOFOUR_TOKENS" envDefault:"aaaabbbb11112222"`
+	AuthToken     string   `env:"HELLOFOUR_AUTH_TOKEN"`
 	ServiceName   string   `env:"HELLOFOUR_SERVICE_NAME" envDefault:"hellofour"`
 
 	StatsDAddress string  `env:"HELLOFOUR_STATSD_ADDRESS" envDefault:"localhost:8125"`

@@ -48,9 +48,9 @@ func (a *API) Run() error {
 
 	routes := mux.NewRouter().StrictSlash(true)
 
-	/**************
-	 * Basic handlers
-	 **************/
+	/***************
+	Basic handlers
+	***************/
 
 	routes.Handle(
 		"/", http.HandlerFunc(a.homeHandler),
@@ -68,9 +68,18 @@ func (a *API) Run() error {
 		"/healthcheck", healthHandler,
 	)).Methods("GET")
 
-	/**************
-	 *  v1 endpoints
-	 **************/
+	/*************
+	v1 endpoints
+	*************/
+
+	routes.Handle(a.setupHandler(
+		"/v1/heroku/resources", []rye.Handler{
+			rye.NewMiddlewareAuth(rye.NewBasicAuthFunc(map[string]string{
+				"user1":     "my_password",
+				"hellofour": "80e6fa24349745346f434e630be2e456",
+			})),
+			a.resourceHandler,
+		})).Methods("POST")
 
 	llog.Infof("API server running on :%v", a.Config.ListenAddress)
 
