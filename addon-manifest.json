@@ -1,0 +1,18 @@
+{
+  "id": "hellofour",
+  "api": {
+    "config_vars": [ "HELLOFOUR_URL" ],
+    "requires": [],
+    "regions": [ "us" ],
+    "password": "80e6fa24349745346f434e630be2e456",
+    "sso_salt": "8ab893688fd166593b072422b4cf8507",
+    "production": {
+      "base_url": "https://frozen-hamlet-80191.herokuapp.com/heroku/resources",
+      "sso_url": "https://frozen-hamlet-80191.herokuapp.com/sso/login"
+    },
+    "test": {
+      "base_url": "http://localhost:8083/heroku/resources",
+      "sso_url": "http://localhost:8083/sso/login"
+    }
+  }
+}
