@@ -8,7 +8,6 @@ import (
 	"github.com/InVisionApp/go-logger/shims/logrus"
 	"github.com/InVisionApp/rye"
 	"github.com/cactus/go-statsd-client/statsd"
-	"github.com/newrelic/go-agent"
 
 	"github.com/talpert/hellofour/config"
 	"github.com/talpert/hellofour/deps/backends"
@@ -17,7 +16,6 @@ import (
 type Dependencies struct {
 	StatsD    statsd.Statter
 	MWHandler *rye.MWHandler
-	NRApp     newrelic.Application
 
 	//DALs
 

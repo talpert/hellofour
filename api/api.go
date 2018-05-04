@@ -7,7 +7,6 @@ import (
 	hh "github.com/InVisionApp/go-health/handlers"
 	"github.com/InVisionApp/rye"
 	"github.com/gorilla/mux"
-	"github.com/newrelic/go-agent"
 	"github.com/sirupsen/logrus"
 
 	"github.com/gorilla/handlers"
@@ -64,9 +63,9 @@ func (a *API) Run() error {
 		"version": a.Version,
 	})
 
-	routes.Handle(newrelic.WrapHandle(a.Deps.NRApp,
+	routes.Handle(
 		"/healthcheck", healthHandler,
-	)).Methods("GET")
+	).Methods("GET")
 
 	/*************
 	v1 endpoints
@@ -87,6 +86,5 @@ func (a *API) Run() error {
 }
 
 func (a *API) setupHandler(path string, ryeStack []rye.Handler) (string, http.Handler) {
-	p, h := newrelic.WrapHandle(a.Deps.NRApp, path, a.Deps.MWHandler.Handle(ryeStack))
-	return p, handlers.LoggingHandler(os.Stdout, h)
+	return path, handlers.LoggingHandler(os.Stdout, a.Deps.MWHandler.Handle(ryeStack))
 }
