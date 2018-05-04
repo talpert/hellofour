@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/InVisionApp/rye"
+	"github.com/gorilla/mux"
 	"github.com/talpert/hellofour/util"
 )
 
@@ -52,7 +53,7 @@ type ProvisionResponse struct {
 	LogDrainURL string `json:"log_drain_url"`
 }
 
-func (a *API) resourceHandler(rw http.ResponseWriter, r *http.Request) *rye.Response {
+func (a *API) createHandler(rw http.ResponseWriter, r *http.Request) *rye.Response {
 	reqBody := &ProvisionRequest{}
 
 	if err := decodeJSONInput(r.Body, reqBody, log); err != nil {
@@ -83,4 +84,38 @@ func Provision(ctx context.Context, request *ProvisionRequest) (string, error) {
 	//TODO: put the real provisioning here
 
 	return util.GenerateUUID().String(), nil
+}
+
+func (a *API) updateHandler(rw http.ResponseWriter, r *http.Request) *rye.Response {
+	accountID := mux.Vars(r)["accountID"]
+
+	reqBody := &ProvisionRequest{}
+
+	if err := decodeJSONInput(r.Body, reqBody, log); err != nil {
+		return err
+	}
+
+	msg := fmt.Sprintf("Updating an addon {%s} with options: %v", accountID, reqBody.Options)
+	log.Info(msg)
+
+	resp := &ProvisionResponse{
+		Message: msg,
+	}
+
+	respondAsJSON(rw, http.StatusOK, resp, log)
+	return nil
+}
+
+func (a *API) deleteHandler(rw http.ResponseWriter, r *http.Request) *rye.Response {
+	accountID := mux.Vars(r)["accountID"]
+
+	msg := fmt.Sprintf("Deleting an addon {%s}", accountID)
+	log.Info(msg)
+
+	resp := &ProvisionResponse{
+		Message: msg,
+	}
+
+	respondAsJSON(rw, http.StatusOK, resp, log)
+	return nil
 }

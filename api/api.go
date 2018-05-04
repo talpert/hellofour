@@ -72,13 +72,31 @@ func (a *API) Run() error {
 	*************/
 
 	routes.Handle(a.setupHandler(
-		"/v1/heroku/resources", []rye.Handler{
+		"/heroku/resources", []rye.Handler{
 			rye.NewMiddlewareAuth(rye.NewBasicAuthFunc(map[string]string{
 				"user1":     "my_password",
 				"hellofour": "80e6fa24349745346f434e630be2e456",
 			})),
-			a.resourceHandler,
+			a.createHandler,
 		})).Methods("POST")
+
+	routes.Handle(a.setupHandler(
+		"/heroku/resources/{accountID}", []rye.Handler{
+			rye.NewMiddlewareAuth(rye.NewBasicAuthFunc(map[string]string{
+				"user1":     "my_password",
+				"hellofour": "80e6fa24349745346f434e630be2e456",
+			})),
+			a.updateHandler,
+		})).Methods("PUT")
+
+	routes.Handle(a.setupHandler(
+		"/heroku/resources/{accountID}", []rye.Handler{
+			rye.NewMiddlewareAuth(rye.NewBasicAuthFunc(map[string]string{
+				"user1":     "my_password",
+				"hellofour": "80e6fa24349745346f434e630be2e456",
+			})),
+			a.deleteHandler,
+		})).Methods("DELETE")
 
 	llog.Infof("API server running on :%v", a.Config.ListenAddress)
 
