@@ -8,7 +8,7 @@ import (
 
 	"github.com/InVisionApp/rye"
 	"github.com/gorilla/mux"
-	"github.com/talpert/hellofour/util"
+	hc "github.com/talpert/hellofour/dal/heroku/client"
 )
 
 //{
@@ -54,36 +54,63 @@ type ProvisionResponse struct {
 }
 
 func (a *API) createHandler(rw http.ResponseWriter, r *http.Request) *rye.Response {
-	reqBody := &ProvisionRequest{}
+	req := &ProvisionRequest{}
 
-	if err := decodeJSONInput(r.Body, reqBody, log); err != nil {
+	if err := decodeJSONInput(r.Body, req, log); err != nil {
 		return err
 	}
 
-	id, err := Provision(r.Context(), reqBody)
-	if err != nil {
-		return &rye.Response{
-			Err:        err,
-			StatusCode: http.StatusInternalServerError,
-		}
-	}
+	//TODO: validate input
 
-	msg := fmt.Sprintf("Created a new addon {%s} with options: %v", id, reqBody.Options)
+	msg := fmt.Sprintf("Accepted new addon provision request {%s} with options: %v", req.UUID, req.Options)
 	log.Info(msg)
 
 	resp := &ProvisionResponse{
-		ID:      id,
+		ID:      req.UUID,
 		Message: msg,
 	}
 
+	// respond as accepted for processing
 	respondAsJSON(rw, http.StatusAccepted, resp, log)
+
+	// now we are async
+
+	//provision!
+	go a.Provision(r.Context(), req)
+
 	return nil
 }
 
-func Provision(ctx context.Context, request *ProvisionRequest) (string, error) {
+func (a *API) Provision(ctx context.Context, request *ProvisionRequest) {
+	// do the auth first so not to provision junk
+	auth, err := a.Deps.HerokuClient.GetAuth(ctx, request.OAuthGrant.Code)
+	if err != nil {
+		log.Errorf("failed to authenticate: %v", err)
+		return
+	}
+
 	//TODO: put the real provisioning here
 
-	return util.GenerateUUID().String(), nil
+	log.Infof("Created a new addon {%s}", request.UUID)
+
+	//set a config val
+	a.Deps.HerokuClient.UpdateConfig(ctx, auth, request.CallbackURL, []*hc.AddonConfig{
+		{Name: "SPECIAL_VAR", Value: "super value"},
+	})
+
+	// if success...
+	a.Finished(ctx, request.CallbackURL, auth)
+}
+
+func (a *API) Finished(ctx context.Context, url string, auth *hc.Auth) {
+	//call api to report done
+	resp, err := a.Deps.HerokuClient.CallDone(ctx, url, auth)
+	if err != nil {
+		log.Errorf("failed to authenticate: %v", err)
+		return
+	}
+
+	log.Info("finished provisioning for %s: %+v", resp.ID, resp)
 }
 
 func (a *API) updateHandler(rw http.ResponseWriter, r *http.Request) *rye.Response {

@@ -8,6 +8,7 @@ import (
 	"github.com/InVisionApp/go-logger/shims/logrus"
 	"github.com/InVisionApp/rye"
 	"github.com/cactus/go-statsd-client/statsd"
+	hc "github.com/talpert/hellofour/dal/heroku/client"
 
 	"github.com/talpert/hellofour/config"
 	"github.com/talpert/hellofour/deps/backends"
@@ -18,6 +19,7 @@ type Dependencies struct {
 	MWHandler *rye.MWHandler
 
 	//DALs
+	HerokuClient *hc.Client
 
 	Backends *backends.Backends
 	Health   health.IHealth
@@ -44,6 +46,8 @@ func New(cfg *config.Config) (*Dependencies, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	d.HerokuClient = hc.NewClient(cfg.ClientSecret)
 
 	d.Backends = be
 

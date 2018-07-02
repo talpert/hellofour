@@ -18,6 +18,7 @@ type Config struct {
 	Tokens        []string `env:"HELLOFOUR_TOKENS" envDefault:"aaaabbbb11112222"`
 	AuthToken     string   `env:"HELLOFOUR_AUTH_TOKEN"`
 	ServiceName   string   `env:"HELLOFOUR_SERVICE_NAME" envDefault:"hellofour"`
+	ClientSecret  string   `env:"HELLOFOUR_CLIENT_SECRET" envDefault:"dc7d123d-2b3b-48fb-993f-ad8c2a14715e"`
 
 	StatsDAddress string  `env:"HELLOFOUR_STATSD_ADDRESS" envDefault:"localhost:8125"`
 	StatsDPrefix  string  `env:"HELLOFOUR_STATSD_PREFIX" envDefault:"statsd.hellofour.dev"`
