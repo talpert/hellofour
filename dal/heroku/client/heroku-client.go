@@ -2,15 +2,21 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
 	"time"
 
+	"github.com/talpert/hellofour/dal/heroku/types"
 	"github.com/talpert/hellofour/util/apiclient"
 )
 
 const ID_HOST = "https://id.heroku.com"
+
+type IClient interface {
+	GetAuth(ctx context.Context, grant *types.OAuthGrant) (*types.Auth, error)
+}
 
 type Client struct {
 	clientSecret string
@@ -30,24 +36,21 @@ func NewClient(secret string) *Client {
 	return c
 }
 
-type Auth struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int    `json:"expires_in"`
-	TokenType    string `json:"token_type"`
-}
-
 //TODO: use an oauth lib for some of this shit
-func (c *Client) GetAuth(ctx context.Context, grantToken string) (*Auth, error) {
+func (c *Client) GetAuth(ctx context.Context, grant *types.OAuthGrant) (*types.Auth, error) {
+	if grant == nil {
+		return nil, errors.New("OAuth grant may not be nil")
+	}
+
 	val := url.Values{}
 	val.Set("grant_type", "authorization_code")
-	val.Set("code", grantToken)
+	val.Set("code", grant.Code)
 	val.Set("client_secret", c.clientSecret)
 
-	auth := &Auth{}
+	auth := &types.Auth{}
 
 	resp, err := c.MakeRequest(ctx, &apiclient.APIRequest{
-		URL:     path.Join(ID_HOST, "/oauth/token"),
+		URL:     ID_HOST + "/oauth/token",
 		Method:  "POST",
 		Payload: val,
 		Result:  auth,
@@ -64,7 +67,7 @@ func (c *Client) GetAuth(ctx context.Context, grantToken string) (*Auth, error) 
 }
 
 //TODO: implement
-func (c *Client) RefreshAuth(ctx context.Context) (*Auth, error) {
+func (c *Client) RefreshAuth(ctx context.Context) (*types.Auth, error) {
 	return nil, nil
 }
 
@@ -73,7 +76,7 @@ type AddonConfig struct {
 	Value string `json:"value"`
 }
 
-func (c *Client) UpdateConfig(ctx context.Context, auth *Auth, baseURL string, config []*AddonConfig) error {
+func (c *Client) UpdateConfig(ctx context.Context, auth *types.Auth, baseURL string, config []*AddonConfig) error {
 	body := struct {
 		Config []*AddonConfig `json:"config"`
 	}{
@@ -171,7 +174,7 @@ type ProvisionResponse struct {
 	WebURL     string    `json:"web_url"`
 }
 
-func (c *Client) CallDone(ctx context.Context, baseURL string, auth *Auth) (*ProvisionResponse, error) {
+func (c *Client) CallDone(ctx context.Context, baseURL string, auth *types.Auth) (*ProvisionResponse, error) {
 	pr := &ProvisionResponse{}
 
 	resp, err := c.MakeRequest(ctx, &apiclient.APIRequest{

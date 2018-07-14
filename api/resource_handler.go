@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/InVisionApp/rye"
 	"github.com/gorilla/mux"
 	hc "github.com/talpert/hellofour/dal/heroku/client"
+	ht "github.com/talpert/hellofour/dal/heroku/types"
 )
 
 //{
@@ -30,7 +30,7 @@ import (
 type ProvisionRequest struct {
 	CallbackURL string                 `json:"callback_url"`
 	Name        string                 `json:"name"`
-	OAuthGrant  *OAuthGrant            `json:"oauth_grant"`
+	OAuthGrant  *ht.OAuthGrant         `json:"oauth_grant"`
 	Options     map[string]interface{} `json:"options"`
 	Plan        string                 `json:"plan"`
 	Region      string                 `json:"region"`
@@ -38,12 +38,6 @@ type ProvisionRequest struct {
 	// optional
 	LogInputURL   string `json:"log_input_url"`
 	LogDrainToken string `json:"log_drain_token"`
-}
-
-type OAuthGrant struct {
-	Code      string    `json:"code"`
-	ExpiresAt time.Time `json:"expires_at"`
-	Type      string    `json:"type"`
 }
 
 type ProvisionResponse struct {
@@ -60,10 +54,14 @@ func (a *API) createHandler(rw http.ResponseWriter, r *http.Request) *rye.Respon
 		return err
 	}
 
-	//TODO: validate input
+	if err := validateProvision(req); err != nil {
+		return &rye.Response{
+			Err:        err,
+			StatusCode: http.StatusBadRequest,
+		}
+	}
 
 	msg := fmt.Sprintf("Accepted new addon provision request {%s} with options: %v", req.UUID, req.Options)
-	log.Info(msg)
 
 	resp := &ProvisionResponse{
 		ID:      req.UUID,
@@ -74,16 +72,27 @@ func (a *API) createHandler(rw http.ResponseWriter, r *http.Request) *rye.Respon
 	respondAsJSON(rw, http.StatusAccepted, resp, log)
 
 	// now we are async
+	log.Info(msg)
 
-	//provision!
+	// provision!
 	go a.Provision(r.Context(), req)
+
+	return nil
+}
+
+func validateProvision(req *ProvisionRequest) error {
+	//TODO: flesh out
+
+	if req.OAuthGrant == nil {
+		return fmt.Errorf("must have an oauth grant")
+	}
 
 	return nil
 }
 
 func (a *API) Provision(ctx context.Context, request *ProvisionRequest) {
 	// do the auth first so not to provision junk
-	auth, err := a.Deps.HerokuClient.GetAuth(ctx, request.OAuthGrant.Code)
+	auth, err := a.Deps.HerokuClient.GetAuth(ctx, request.OAuthGrant)
 	if err != nil {
 		log.Errorf("failed to authenticate: %v", err)
 		return
@@ -102,7 +111,7 @@ func (a *API) Provision(ctx context.Context, request *ProvisionRequest) {
 	a.Finished(ctx, request.CallbackURL, auth)
 }
 
-func (a *API) Finished(ctx context.Context, url string, auth *hc.Auth) {
+func (a *API) Finished(ctx context.Context, url string, auth *ht.Auth) {
 	//call api to report done
 	resp, err := a.Deps.HerokuClient.CallDone(ctx, url, auth)
 	if err != nil {

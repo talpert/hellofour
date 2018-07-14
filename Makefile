@@ -11,3 +11,6 @@ clean:
 
 heroku: $(DOCKER_CMD)
 	heroku container:push web
+
+run:
+	go run *.go -d

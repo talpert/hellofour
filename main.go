@@ -1,17 +1,14 @@
 package main
 
 import (
-	"os"
-
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
 	"gopkg.in/alecthomas/kingpin.v2"
 
+	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/talpert/hellofour/api"
 	"github.com/talpert/hellofour/config"
 	"github.com/talpert/hellofour/deps"
-	_ "github.com/heroku/x/hmetrics/onload"
 )
 
 var (
@@ -32,12 +29,6 @@ func init() {
 func main() {
 	if *debug {
 		logrus.SetLevel(logrus.DebugLevel)
-	}
-
-	// JSON formatter for log output if not running in a TTY
-	// because Loggly likes JSON but humans like colors
-	if !terminal.IsTerminal(int(os.Stderr.Fd())) {
-		logrus.SetFormatter(&logrus.JSONFormatter{})
 	}
 
 	llog := logrus.WithField("method", "main")
