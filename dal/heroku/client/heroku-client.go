@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"path"
-	"time"
 
 	"github.com/talpert/hellofour/dal/heroku/types"
 	"github.com/talpert/hellofour/util/apiclient"
@@ -84,7 +82,7 @@ func (c *Client) UpdateConfig(ctx context.Context, auth *types.Auth, baseURL str
 	}
 
 	resp, err := c.MakeRequest(ctx, &apiclient.APIRequest{
-		URL:     path.Join(baseURL, "/config"),
+		URL:     baseURL + "/config",
 		Method:  "PATCH",
 		Headers: map[string]string{"Authorization": fmt.Sprintf("Bearer %s", auth.AccessToken)},
 		Payload: body,
@@ -138,47 +136,11 @@ func (c *Client) UpdateConfig(ctx context.Context, auth *types.Auth, baseURL str
 //  "web_url": "https://postgres.heroku.com/databases/01234567-89ab-cdef-0123-456789abcdef"
 //}
 
-//TODO: split this out
-type ProvisionResponse struct {
-	Actions struct {
-		ID            string `json:"id"`
-		Label         string `json:"label"`
-		Action        string `json:"action"`
-		URL           string `json:"url"`
-		RequiresOwner bool   `json:"requires_owner"`
-	} `json:"actions"`
-	AddonService struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	} `json:"addon_service"`
-	App struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	} `json:"app"`
-	BilledPrice struct {
-		Cents    int    `json:"cents"`
-		Contract bool   `json:"contract"`
-		Unit     string `json:"unit"`
-	} `json:"billed_price"`
-	ConfigVars []string  `json:"config_vars"`
-	CreatedAt  time.Time `json:"created_at"`
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	Plan       struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	} `json:"plan"`
-	ProviderID string    `json:"provider_id"`
-	State      string    `json:"state"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	WebURL     string    `json:"web_url"`
-}
-
-func (c *Client) CallDone(ctx context.Context, baseURL string, auth *types.Auth) (*ProvisionResponse, error) {
-	pr := &ProvisionResponse{}
+func (c *Client) CallDone(ctx context.Context, baseURL string, auth *types.Auth) (*types.ProvisionResponse, error) {
+	pr := &types.ProvisionResponse{}
 
 	resp, err := c.MakeRequest(ctx, &apiclient.APIRequest{
-		URL:    path.Join(baseURL, "/actions/provision"),
+		URL:    baseURL + "/actions/provision",
 		Method: "POST",
 		Result: pr,
 	})
