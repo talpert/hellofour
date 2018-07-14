@@ -68,14 +68,33 @@ func (a *API) createHandler(rw http.ResponseWriter, r *http.Request) *rye.Respon
 		Message: msg,
 	}
 
-	// respond as accepted for processing
-	respondAsJSON(rw, http.StatusAccepted, resp, log)
-
-	// now we are async
 	log.Info(msg)
+	// printing this for now until we have a queryable DB
+	log.Debugf("Auth: %+v", req.OAuthGrant)
 
-	// provision!
-	go a.Provision(r.Context(), req)
+	// trying synchronously
+	if err := a.Provision(r.Context(), req); err != nil {
+		emsg := fmt.Errorf("failed to provision: %v", err)
+		log.Error(emsg)
+		return &rye.Response{
+			Err:        emsg,
+			StatusCode: http.StatusInternalServerError,
+		}
+	}
+
+	// created
+	respondAsJSON(rw, http.StatusCreated, resp, log)
+
+	//// respond as accepted for processing
+	//respondAsJSON(rw, http.StatusAccepted, resp, log)
+	//// now we are async
+	//
+	//// provision!
+	//go func() {
+	//	if err := a.Provision(r.Context(), req); err != nil {
+	//		log.Errorf("failed to provision: %v", err)
+	//	}
+	//}()
 
 	return nil
 }
@@ -90,12 +109,11 @@ func validateProvision(req *ProvisionRequest) error {
 	return nil
 }
 
-func (a *API) Provision(ctx context.Context, request *ProvisionRequest) {
+func (a *API) Provision(ctx context.Context, request *ProvisionRequest) error {
 	// do the auth first so not to provision junk
 	auth, err := a.Deps.HerokuClient.GetAuth(ctx, request.OAuthGrant)
 	if err != nil {
-		log.Errorf("failed to authenticate: %v", err)
-		return
+		return fmt.Errorf("failed to authenticate: %v", err)
 	}
 
 	//TODO: put the real provisioning here
@@ -108,18 +126,19 @@ func (a *API) Provision(ctx context.Context, request *ProvisionRequest) {
 	})
 
 	// if success...
-	a.Finished(ctx, request.CallbackURL, auth)
+	return a.Finished(ctx, request.CallbackURL, auth)
 }
 
-func (a *API) Finished(ctx context.Context, url string, auth *ht.Auth) {
+func (a *API) Finished(ctx context.Context, url string, auth *ht.Auth) error {
 	//call api to report done
 	resp, err := a.Deps.HerokuClient.CallDone(ctx, url, auth)
 	if err != nil {
-		log.Errorf("failed to authenticate: %v", err)
-		return
+		return fmt.Errorf("failed to authenticate: %v", err)
 	}
 
 	log.Info("finished provisioning for %s: %+v", resp.ID, resp)
+
+	return nil
 }
 
 func (a *API) updateHandler(rw http.ResponseWriter, r *http.Request) *rye.Response {
