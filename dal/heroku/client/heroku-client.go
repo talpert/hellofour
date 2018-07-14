@@ -48,10 +48,11 @@ func (c *Client) GetAuth(ctx context.Context, grant *types.OAuthGrant) (*types.A
 	auth := &types.Auth{}
 
 	resp, err := c.MakeRequest(ctx, &apiclient.APIRequest{
-		URL:     ID_HOST + "/oauth/token",
-		Method:  "POST",
-		Payload: val,
-		Result:  auth,
+		URL:         ID_HOST + "/oauth/token",
+		Method:      "POST",
+		ContentType: "application/x-www-form-urlencoded",
+		Payload:     val,
+		Result:      auth,
 	})
 	if err != nil {
 		return nil, err

@@ -41,10 +41,11 @@ func NewAPIClient() *APIClient {
 type APIRequest struct {
 	URL string
 
-	Method  string
-	Headers map[string]string
-	Payload interface{}
-	Result  interface{}
+	Method      string
+	Headers     map[string]string
+	ContentType string
+	Payload     interface{}
+	Result      interface{}
 
 	//internal
 	ctx context.Context
@@ -148,8 +149,11 @@ func (a *APIClient) do(r *APIRequest) (*http.Response, error) {
 		return nil, fmt.Errorf("failed to construct request: %v", err)
 	}
 
-	// if content-type is provided, do not inject application/json content-type
-	appendHeaderIfNotExist(r, "Content-Type", "application/json")
+	// if no content-type is provided, inject application/json content-type
+	if r.ContentType == "" {
+		r.ContentType = "application/json"
+	}
+	appendHeaderIfNotExist(r, "Content-Type", r.ContentType)
 
 	for name, value := range r.Headers {
 		req.Header.Set(name, value)
