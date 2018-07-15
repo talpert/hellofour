@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/mux"
 	hc "github.com/talpert/hellofour/dal/heroku/client"
 	ht "github.com/talpert/hellofour/dal/heroku/types"
+	rt "github.com/talpert/hellofour/manager/resource/types"
 )
 
 //{
@@ -27,19 +28,6 @@ import (
 //	"log_drain_token": "d.01234567-89ab-cdef-0123-456789abcdef"
 //}
 
-type ProvisionRequest struct {
-	CallbackURL string                 `json:"callback_url"`
-	Name        string                 `json:"name"`
-	OAuthGrant  *ht.OAuthGrant         `json:"oauth_grant"`
-	Options     map[string]interface{} `json:"options"`
-	Plan        string                 `json:"plan"`
-	Region      string                 `json:"region"`
-	UUID        string                 `json:"uuid"`
-	// optional
-	LogInputURL   string `json:"log_input_url"`
-	LogDrainToken string `json:"log_drain_token"`
-}
-
 type ProvisionResponse struct {
 	ID string `json:"id"`
 	// optional
@@ -48,13 +36,13 @@ type ProvisionResponse struct {
 }
 
 func (a *API) createHandler(rw http.ResponseWriter, r *http.Request) *rye.Response {
-	req := &ProvisionRequest{}
+	req := &rt.ProvisionRequest{}
 
 	if err := decodeJSONInput(r.Body, req, log); err != nil {
 		return err
 	}
 
-	if err := validateProvision(req); err != nil {
+	if err := req.Validate(); err != nil {
 		return &rye.Response{
 			Err:        err,
 			StatusCode: http.StatusBadRequest,
@@ -99,17 +87,7 @@ func (a *API) createHandler(rw http.ResponseWriter, r *http.Request) *rye.Respon
 	return nil
 }
 
-func validateProvision(req *ProvisionRequest) error {
-	//TODO: flesh out
-
-	if req.OAuthGrant == nil {
-		return fmt.Errorf("must have an oauth grant")
-	}
-
-	return nil
-}
-
-func (a *API) Provision(ctx context.Context, request *ProvisionRequest) error {
+func (a *API) Provision(ctx context.Context, request *rt.ProvisionRequest) error {
 	// do the auth first so not to provision junk
 	auth, err := a.Deps.HerokuClient.GetAuth(ctx, request.OAuthGrant)
 	if err != nil {
@@ -144,7 +122,7 @@ func (a *API) Finished(ctx context.Context, url string, auth *ht.Auth) error {
 func (a *API) updateHandler(rw http.ResponseWriter, r *http.Request) *rye.Response {
 	accountID := mux.Vars(r)["accountID"]
 
-	reqBody := &ProvisionRequest{}
+	reqBody := &rt.ProvisionRequest{}
 
 	if err := decodeJSONInput(r.Body, reqBody, log); err != nil {
 		return err
